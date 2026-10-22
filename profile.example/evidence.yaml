@@ -1,0 +1,120 @@
+# evidence.yaml — the stories a cover letter is built from. Not CV bullets.
+#
+# EXAMPLE DATA for a made-up person. Replace with 5-8 blocks about your own work.
+#
+#   facts         the ONLY things a letter may assert about this block. Plain,
+#                 checkable, no adjectives. 3-6 per block.
+#   story         a few sentences in YOUR words about what you learned or what was
+#                 hard. This is what stops letters sounding machine-written, so
+#                 write it the way you would say it out loud.
+#   source_refs   the bullet ids this block is about
+#   one_line_hook an optional opening line a letter may borrow
+#   use_for       role families this block suits (data_science, machine_learning,
+#                 data_engineering, analytics, research, software, quantitative)
+
+- id: ev.forecasting
+  title: Making a forecast the business would actually use
+  source_refs: [northwind.b1, proj.forecast.b1, proj.forecast.b2]
+  facts:
+    - built a gradient-boosted weekly demand model on two years of store-level sales
+    - added holiday and promotion features
+    - cut weekly forecast error 18% against the existing baseline
+    - benchmarked naive, ARIMA and boosted forecasts with rolling-origin validation in a separate project
+  skills: [forecasting, time_series, feature_engineering, model_evaluation]
+  themes: [applied_ml, honest_evaluation]
+  use_for: [data_science, machine_learning, analytics]
+  strength: strong
+  one_line_hook: >
+    A forecast is only better if it beats the simple one the team already trusts.
+  story: >
+    The first version of the model looked great until I compared it with a seasonal
+    naive forecast on the same weeks. Most of the gain disappeared. What actually
+    helped was the promotion calendar, which nobody had joined to the sales data
+    before. I learned to start every model by beating the dumbest baseline first.
+
+- id: ev.churn
+  title: Finding students about to leave
+  source_refs: [brightpath.b2, proj.churn_api.b1, proj.churn_api.b2]
+  facts:
+    - built a churn model on 4,000 student accounts
+    - flagged at-risk students two weeks earlier than the manual review
+    - reached 0.81 ROC-AUC on a held-out quarter
+    - later served a churn model through FastAPI in Docker with parity tests
+  skills: [churn_prediction, classification, model_serving, testing]
+  themes: [applied_ml, deployment]
+  use_for: [data_science, machine_learning]
+  strength: strong
+  one_line_hook: >
+    A churn score nobody acts on is worth nothing; a Monday list of names is.
+  story: >
+    The founders did not want a score, they wanted a list of names on Monday
+    morning. So the work that mattered was picking a threshold they could act on
+    and checking the list against the students who really left. The serving project
+    came out of that: I wanted to know the model in production was the one I tested.
+
+- id: ev.data_engineering
+  title: Getting the data right before modelling it
+  source_refs: [proj.taxi_pipeline.b1, proj.taxi_pipeline.b2, proj.sql_warehouse.b1, brightpath.b1]
+  facts:
+    - co-built a PySpark ETL over a year of public taxi trips into partitioned Parquet
+    - wrote data-quality checks that quarantined malformed rows instead of dropping them
+    - designed a star schema over five years of library lending records
+    - modelled booking and payments data in PostgreSQL for a weekly dashboard
+  skills: [etl, data_quality, dimensional_modelling, sql]
+  themes: [data_engineering]
+  use_for: [data_engineering, analytics, data_science]
+  strength: medium
+  story: >
+    Every project where the numbers looked wrong traced back to a join or a bad row,
+    not the model. Quarantining bad rows instead of dropping them meant we could
+    count them and ask why they existed, which found two upstream bugs.
+
+- id: ev.nlp
+  title: Classifying messy text
+  source_refs: [proj.reviews_nlp.b1, proj.reviews_nlp.b2]
+  facts:
+    - fine-tuned DistilBERT on 12,000 labelled reviews
+    - tagged five complaint categories
+    - reached macro-F1 0.79 against 0.61 for a TF-IDF baseline
+    - wrote an error analysis of the classes the model confused
+  skills: [nlp, transformers, fine_tuning, model_evaluation]
+  themes: [applied_ml, honest_evaluation]
+  use_for: [machine_learning, data_science]
+  strength: medium
+  story: >
+    Half the errors were reviews that really did belong to two categories. The
+    model was not wrong so much as the labels were too strict, and saying that
+    plainly was more useful than another point of F1.
+
+- id: ev.experiments
+  title: Experiments people can trust
+  source_refs: [proj.ab_test.b1, proj.ab_test.b2, brightpath.b3]
+  facts:
+    - wrote a small Python library for sample-size planning and two-variant test analysis
+    - simulated 10,000 experiments to check the false-positive rate stays at the 5% target
+    - ran two pricing experiments with the founders of a tutoring company
+  skills: [ab_testing, statistics, simulation, experimental_design]
+  themes: [experimentation, honest_evaluation]
+  use_for: [analytics, data_science, research]
+  strength: medium
+  story: >
+    The founders wanted to stop the first pricing test after four days because it
+    looked like a win. I simulated what peeking does to the false-positive rate and
+    showed them the chart. We ran it for the full three weeks and the win shrank to
+    nothing.
+
+- id: ev.rl
+  title: Teaching an agent to route warehouse robots
+  source_refs: [proj.rl_gridworld.b1, proj.rl_gridworld.b2]
+  facts:
+    - built a Gymnasium environment for warehouse routing
+    - compared tabular Q-learning with PPO
+    - shaped the reward to cut collisions
+    - reported where PPO did not beat Q-learning
+  skills: [reinforcement_learning, reward_shaping, benchmarking]
+  themes: [decision_making, honest_evaluation]
+  use_for: [machine_learning, research]
+  strength: medium
+  story: >
+    I expected PPO to win easily. On the small grids it did not, and the honest
+    write-up of why was the most useful part of the project.

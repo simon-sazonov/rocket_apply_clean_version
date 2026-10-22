@@ -1,0 +1,211 @@
+"""The JSON schema the LLM must return.
+
+Mirrored as pydantic models in :mod:`pitwall.models` (`LLMVerdict`,
+`LLMBatchResponse`), which is what actually validates the reply. This module
+holds the machine-readable schema so it can be embedded in the prompt and, on
+providers that support it, passed as a response format.
+
+The `same_name_different_org` enum value is the whole point: it is what lets
+you separate McLaren Racing from McLaren Health Care, Williams Racing from
+Williams Companies, Alpine F1 from Alpine the audio brand — programmatically,
+with a reason string attached.
+"""
+
+from __future__ import annotations
+
+from typing import Any
+
+COMPANY_MATCH_VALUES = [
+    "exact",
+    "parent",
+    "subsidiary",
+    "same_name_different_org",
+    "none",
+    "unknown",
+]
+ROLE_MATCH_VALUES = ["exact", "adjacent", "unrelated", "unknown"]
+SENIORITY_VALUES = [
+    "intern",
+    "graduate",
+    "junior",
+    "mid",
+    "senior",
+    "lead",
+    "head",
+    "executive",
+    "unknown",
+]
+
+RESULT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": [
+        "candidate_id",
+        "is_person_profile",
+        "is_current_employee",
+        "company_match",
+        "role_match",
+        "seniority",
+        "score",
+        "confidence",
+        "reasons",
+    ],
+    "additionalProperties": False,
+    "properties": {
+        "candidate_id": {"type": "integer"},
+        "is_person_profile": {"type": "boolean"},
+        "full_name": {"type": ["string", "null"]},
+        "current_company": {"type": ["string", "null"]},
+        "current_title": {"type": ["string", "null"]},
+        "is_current_employee": {"type": ["boolean", "null"]},
+        "company_match": {"type": "string", "enum": COMPANY_MATCH_VALUES},
+        "role_match": {"type": "string", "enum": ROLE_MATCH_VALUES},
+        "seniority": {"type": "string", "enum": SENIORITY_VALUES},
+        "motorsport_experience": {"type": ["boolean", "null"]},
+        "score": {"type": "number", "minimum": 0, "maximum": 100},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "reasons": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
+        "red_flags": {"type": "array", "items": {"type": "string"}},
+    },
+}
+
+BATCH_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": ["results"],
+    "additionalProperties": False,
+    "properties": {"results": {"type": "array", "items": RESULT_SCHEMA}},
+}
+
+#: Compact form pasted into the prompt so the model sees the contract.
+SCHEMA_HINT = """{
+  "results": [
+    {
+      "candidate_id": <int, echo the value given>,
+      "is_person_profile": <bool>,
+      "full_name": <string|null>,
+      "current_company": <string|null>,
+      "current_title": <string|null>,
+      "is_current_employee": <bool|null>,
+      "company_match": "exact|parent|subsidiary|same_name_different_org|none|unknown",
+      "role_match": "exact|adjacent|unrelated|unknown",
+      "seniority": "intern|graduate|junior|mid|senior|lead|head|executive|unknown",
+      "motorsport_experience": <bool|null>,
+      "score": <0-100>,
+      "confidence": <0.0-1.0>,
+      "reasons": [<1-3 short strings quoting the evidence>],
+      "red_flags": [<strings, may be empty>]
+    }
+  ]
+}"""
+
+
+#: JSON-Schema keywords that constrained decoding does not accept. They are
+#: assertions about a value, not about its shape, and a token-level constraint
+#: engine cannot express them. Dropping them is safe here because `LLMVerdict`
+#: clamps `score`/`confidence` and truncates `reasons` on the way in anyway.
+_STRICT_UNSUPPORTED = frozenset(
+    {"minimum", "maximum", "exclusiveMinimum", "exclusiveMaximum",
+     "minItems", "maxItems", "minLength", "maxLength", "pattern", "format",
+     "default", "multipleOf"}
+)
+
+
+def strict_variant(schema: dict[str, Any]) -> dict[str, Any]:
+    """Rewrite a schema for strict/constrained decoding.
+
+    Two rules, both from the providers that implement it (OpenAI, and Groq for
+    `openai/gpt-oss-*`): every property must appear in `required`, and every
+    object must set `additionalProperties: false`. Optional fields stay optional
+    by being nullable, which they already are.
+    """
+    out: dict[str, Any] = {
+        k: v for k, v in schema.items() if k not in _STRICT_UNSUPPORTED
+    }
+    props = out.get("properties")
+    if isinstance(props, dict):
+        out["properties"] = {k: strict_variant(v) for k, v in props.items()}
+        out["required"] = list(props)
+        out["additionalProperties"] = False
+    items = out.get("items")
+    if isinstance(items, dict):
+        out["items"] = strict_variant(items)
+    return out
+
+
+#: The all-required, constraint-free form of BATCH_SCHEMA.
+STRICT_BATCH_SCHEMA: dict[str, Any] = strict_variant(BATCH_SCHEMA)
+
+
+def response_format(strict: bool = False) -> dict[str, Any]:
+    """`response_format` for the Chat Completions call.
+
+    Plain `json_object` by default — it is what every OpenAI-compatible free
+    tier supports. `strict=True` upgrades to a full json_schema with constrained
+    decoding, which is what removes the `needs_review` failure class: the model
+    is constrained at the token level and cannot emit a non-conforming reply.
+    Only some models support it; see `pitwall.scoring.llm.STRICT_JSON_MODELS`.
+    """
+    if not strict:
+        return {"type": "json_object"}
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "pitwall_batch",
+            "strict": True,
+            "schema": STRICT_BATCH_SCHEMA,
+        },
+    }
+
+
+# ─────────────────── job relevance against a CV (§2.6) ───────────────────
+
+JOB_RESULT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": ["job_id", "score", "confidence", "reasons"],
+    "additionalProperties": False,
+    "properties": {
+        "job_id": {"type": "integer"},
+        "score": {"type": "number", "minimum": 0, "maximum": 100},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "seniority_fit": {
+            "type": "string",
+            "enum": ["below", "match", "above", "unknown"],
+        },
+        "reasons": {"type": "array", "items": {"type": "string"}, "maxItems": 3},
+        "red_flags": {"type": "array", "items": {"type": "string"}},
+    },
+}
+
+JOB_BATCH_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": ["results"],
+    "additionalProperties": False,
+    "properties": {"results": {"type": "array", "items": JOB_RESULT_SCHEMA}},
+}
+
+STRICT_JOB_BATCH_SCHEMA: dict[str, Any] = strict_variant(JOB_BATCH_SCHEMA)
+
+JOB_SCHEMA_HINT = """{
+  "results": [
+    {
+      "job_id": <int, echo the value given>,
+      "score": <0-100, how well this posting fits the profile>,
+      "confidence": <0.0-1.0>,
+      "seniority_fit": "below|match|above|unknown",
+      "reasons": [<1-3 short strings quoting the posting or the profile>],
+      "red_flags": [<strings, may be empty>]
+    }
+  ]
+}"""
+
+
+def job_response_format(strict: bool = False) -> dict[str, Any]:
+    if not strict:
+        return {"type": "json_object"}
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "pitwall_job_relevance",
+            "strict": True,
+            "schema": STRICT_JOB_BATCH_SCHEMA,
+        },
+    }

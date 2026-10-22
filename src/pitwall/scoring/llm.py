@@ -1,0 +1,666 @@
+"""Stage 2 scoring: the LLM filter.
+
+All three providers speak the OpenAI-compatible Chat Completions API, so one
+client class handles them: only `base_url`, `api_key` and `model` change.
+
+Robustness ladder (§9.2) — a person is **never** silently dropped because the
+model misbehaved:
+
+1. Parse JSON -> validate with pydantic.
+2. Parse fails -> extract the first balanced ``{...}`` substring, retry parse.
+3. Still fails -> one retry to the model: "Return ONLY the JSON object."
+4. Still fails -> ``verdict='needs_review'``, keep the candidate, surface it.
+"""
+
+from __future__ import annotations
+
+import contextlib
+import json
+import logging
+import re
+import threading
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+from ..config import Settings, get_settings
+from ..models import Company, LLMBatchResponse, LLMVerdict, Role
+from .schema import SCHEMA_HINT, response_format
+
+log = logging.getLogger(__name__)
+
+PROMPTS_DIR = Path(__file__).parent / "prompts"
+
+#: base_url / model / key env per provider (§2.3).
+PROVIDERS: dict[str, dict[str, Any]] = {
+    "groq": {
+        "base_url": "https://api.groq.com/openai/v1",
+        # Not a constant on purpose — Groq deprecates model IDs on short notice.
+        # `Settings.groq_model` / `LLM_MODEL` is the real source, and
+        # `scripts/setup_groq.py` verifies it against GET /openai/v1/models.
+        "model": "openai/gpt-oss-20b",
+        "key_env": "GROQ_API_KEY",
+    },
+    "zai": {
+        "base_url": "https://api.z.ai/api/paas/v4",
+        "model": "glm-4.7-flash",
+        "key_env": "ZAI_API_KEY",
+    },
+    "deepseek": {
+        "base_url": "https://api.deepseek.com/v1",
+        "model": "deepseek-v4-flash",
+        "key_env": "DEEPSEEK_API_KEY",
+    },
+    "ollama": {
+        "base_url": "http://localhost:11434/v1",
+        # A Modelfile-derived qwen2.5:7b with num_ctx raised — see
+        # scripts/setup_ollama.py. Qwen2.5 rather than Qwen3 because Qwen3 is a
+        # hybrid reasoning model whose thinking mode is on by default and cannot
+        # be turned off reliably through Ollama; for a temperature-0 JSON
+        # classifier those tokens are pure cost.
+        "model": "pitwall-qwen2.5",
+        "key_env": None,
+    },
+}
+
+#: Headroom over the estimated prompt + max_tokens, for tokenizer variance.
+CONTEXT_MARGIN = 512
+
+#: A refusal you cannot wait out: out of credits, out of daily allowance, or a
+#: billing problem. The only remedy is a different provider.
+#: Unambiguous "this will not clear inside one run": a per-DAY ceiling, an empty
+#: balance, a dead key.
+_TERMINAL_MARKERS = (
+    "per day", "per-day", "requests per day", "(rpd)", "daily limit",
+    "insufficient", "out of credit", "no credits", "credit balance",
+    "payment required", "quota exceeded", "out of quota", "exhausted", "expired",
+)
+
+#: Unambiguous "wait a moment": a per-MINUTE ceiling.
+#:
+#: Checked BEFORE the terminal markers, and that ordering is not cosmetic. Groq
+#: ends every rate-limit message with an upgrade link —
+#: `https://console.groq.com/settings/billing` — so a naive substring match on
+#: "billing" reads a ten-second pause as a dead account. It did exactly that on
+#: the first real run, twice.
+_TRANSIENT_MARKERS = (
+    "per minute", "per-minute", "(tpm)", "(rpm)", "tokens per minute",
+    "requests per minute", "rate_limit_exceeded", "try again in",
+)
+
+#: Weaker signals, only consulted once neither of the above matched.
+_RATE_LIMIT_MARKERS = (
+    "429", "rate limit", "rate_limit", "too many requests",
+)
+
+
+#: Models whose provider will enforce a JSON Schema at the token level. Strict
+#: mode is what removes the `needs_review` failure class almost entirely: the
+#: model is constrained while decoding and *cannot* emit a non-conforming reply,
+#: so the repair ladder below never has to run.
+#:
+#: Verified against console.groq.com/docs/structured-outputs on 29 Aug 2026.
+#: A model missing from this list still gets `{"type": "json_object"}`, which
+#: every OpenAI-compatible provider supports.
+STRICT_JSON_MODELS: frozenset[str] = frozenset(
+    {"openai/gpt-oss-20b", "openai/gpt-oss-120b", "qwen/qwen3.8-27b"}
+)
+
+#: Models that emit a reasoning trace, and therefore accept `reasoning_effort`.
+#: The trace is billed as output and counts against Groq's free 8K tokens/minute,
+#: so for a classification task it is pure cost.
+REASONING_MODELS: tuple[str, ...] = ("openai/gpt-oss-", "qwen/qwen3")
+
+
+class QuotaExhausted(RuntimeError):
+    """The provider refused for good — degrade to the next one in the chain."""
+
+
+class LLMRateLimited(RuntimeError):
+    """The provider refused *for now*.
+
+    Emphatically not the same thing as :class:`QuotaExhausted`. Groq's free tier
+    allows 8,000 tokens a minute, so a real sweep trips this every few batches
+    and it clears in seconds. Degrading over it would abandon the fastest
+    provider in the chain for a local CPU model a thousand times slower — which
+    is exactly what happened the first time this was run against the real 301.
+    """
+
+    def __init__(self, message: str, retry_after: float | None = None) -> None:
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+class LLMUnavailable(RuntimeError):
+    """The provider could not be reached or is not configured."""
+
+
+@dataclass
+class Usage:
+    calls: int = 0
+    tokens_in: int = 0
+    tokens_out: int = 0
+    #: One scorer is shared by the LLM stage's worker threads (§1.1), so the
+    #: three counters below are written concurrently. `+=` is a read and a
+    #: write, not one operation, and the interpreter is free to switch threads
+    #: between them.
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    def add(self, tin: int, tout: int) -> None:
+        with self._lock:
+            self.calls += 1
+            self.tokens_in += tin
+            self.tokens_out += tout
+
+    def cost(self, prices: dict[str, float]) -> float:
+        return (
+            self.tokens_in / 1_000_000 * float(prices.get("input", 0.0))
+            + self.tokens_out / 1_000_000 * float(prices.get("output", 0.0))
+        )
+
+
+@dataclass
+class BatchOutcome:
+    """Result of one `score_batch` call."""
+
+    verdicts: list[LLMVerdict] = field(default_factory=list)
+    needs_review: list[int] = field(default_factory=list)
+    model: str = ""
+    provider: str = ""
+    raw: str = ""
+    error: str | None = None
+    #: True only when the *call* failed — unreachable host, 5xx, auth refusal.
+    #: A model that answered badly is not a provider failure: the repair ladder
+    #: already handles that, and degrading over it would burn the chain on a
+    #: problem the next provider is just as likely to have.
+    provider_error: bool = False
+
+
+# ─────────────────────────────── prompts ────────────────────────────────
+
+
+def _env() -> Environment:
+    return Environment(
+        loader=FileSystemLoader(str(PROMPTS_DIR)),
+        autoescape=select_autoescape(enabled_extensions=(), default=False),
+        trim_blocks=False,
+        lstrip_blocks=False,
+    )
+
+
+def load_system_prompt(version: str = "v1") -> str:
+    path = PROMPTS_DIR / f"system_{version}.txt"
+    if not path.exists():
+        raise FileNotFoundError(f"system prompt not found: {path}")
+    return path.read_text(encoding="utf-8").strip()
+
+
+def render_user_prompt(
+    company: Company | None,
+    role: Role | None,
+    candidates: list[dict[str, Any]],
+    version: str = "v1",
+) -> str:
+    template = _env().get_template(f"user_{version}.j2")
+    return template.render(
+        company=company or _blank_company(),
+        role=role or _blank_role(),
+        candidates=candidates,
+        schema_hint=SCHEMA_HINT,
+    )
+
+
+def _blank_company() -> Company:
+    return Company(name="(any motorsport organisation)", aliases=[], negative_keywords=[])
+
+
+def _blank_role() -> Role:
+    return Role(title="(any technical role)", family="data_science", aliases=[], seniority=[])
+
+
+# ──────────────────────────── JSON repair ───────────────────────────────
+
+
+def repair_json(text: str) -> dict[str, Any] | None:
+    """Step 2 of the ladder: pull the first balanced ``{...}`` out of prose."""
+    if not text:
+        return None
+    stripped = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", text.strip(), flags=re.I | re.M)
+    try:
+        parsed = json.loads(stripped)
+        return parsed if isinstance(parsed, dict) else {"results": parsed}
+    except json.JSONDecodeError:
+        pass
+
+    start = stripped.find("{")
+    while start != -1:
+        depth, in_str, escape = 0, False, False
+        for i in range(start, len(stripped)):
+            ch = stripped[i]
+            if escape:
+                escape = False
+                continue
+            if ch == "\\":
+                escape = True
+                continue
+            if ch == '"':
+                in_str = not in_str
+                continue
+            if in_str:
+                continue
+            if ch == "{":
+                depth += 1
+            elif ch == "}":
+                depth -= 1
+                if depth == 0:
+                    try:
+                        out = json.loads(stripped[start : i + 1])
+                        if isinstance(out, dict):
+                            return out
+                    except json.JSONDecodeError:
+                        break
+        start = stripped.find("{", start + 1)
+    return None
+
+
+def parse_batch(text: str) -> LLMBatchResponse | None:
+    data = repair_json(text)
+    if data is None:
+        return None
+    if "results" not in data and isinstance(data.get("candidate_id"), int):
+        data = {"results": [data]}  # single-object reply
+    try:
+        return LLMBatchResponse.model_validate(data)
+    except Exception as exc:  # pydantic ValidationError
+        log.debug("batch validation failed: %s", exc)
+        return None
+
+
+# ─────────────────────────────── the client ──────────────────────────────
+
+
+class LLMScorer:
+    """OpenAI-compatible scorer with batching, repair and quota degradation."""
+
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        *,
+        provider: str | None = None,
+        client: Any | None = None,
+    ) -> None:
+        self.settings = settings or get_settings()
+        self.provider = provider or self.settings.llm_provider
+        self.cfg = self.settings.llm_config(self.provider)
+        self.model = self.cfg["model"]
+        self.usage = Usage()
+        self.system_prompt = load_system_prompt(self.settings.prompt_version)
+        self._client = client
+        self.degraded_from: str | None = None
+
+    # ── client plumbing ──
+
+    @property
+    def client(self) -> Any:
+        if self._client is None:
+            try:
+                from openai import OpenAI
+            except ImportError as exc:  # pragma: no cover
+                raise LLMUnavailable("the `openai` package is not installed") from exc
+            key = self.cfg.get("api_key") or ""
+            if not key and self.provider != "ollama":
+                raise LLMUnavailable(
+                    f"no API key for {self.provider!r} — set "
+                    f"{PROVIDERS.get(self.provider, {}).get('key_env', 'the API key')} in .env"
+                )
+            self._client = OpenAI(
+                base_url=self.cfg["base_url"],
+                api_key=key or "not-needed",
+                timeout=self.settings.llm_timeout_seconds,
+            )
+        return self._client
+
+    def is_available(self) -> bool:
+        try:
+            _ = self.client
+            return True
+        except LLMUnavailable:
+            return False
+
+    # ── preflight ──
+
+    def estimated_prompt_tokens(self) -> int:
+        """Rough token count of one full batch prompt.
+
+        The system prompt is fixed; the user prompt grows with `llm_batch_size`.
+        ~3.6 characters per token is close enough for a context check, and the
+        margin below absorbs the error.
+        """
+        per_candidate_chars = 350  # title + snippet + url + framing
+        chars = len(self.system_prompt) + 1200 + per_candidate_chars * self.settings.llm_batch_size
+        return int(chars / 3.6)
+
+    def required_context_tokens(self) -> int:
+        return self.estimated_prompt_tokens() + self.settings.llm_max_tokens + CONTEXT_MARGIN
+
+    def preflight(self) -> None:
+        """Fail loudly, before scoring, when a local model would silently truncate.
+
+        Ollama's `/v1/chat/completions` ignores per-request `options`, so `num_ctx`
+        can only come from the model itself. If it is left at the server default
+        (4,096) a full batch overflows and Ollama drops tokens **from the front** —
+        which silently deletes the system prompt, i.e. the entire scoring rubric,
+        and returns confident nonsense with no error at all.
+
+        Only meaningful for `ollama`. A no-op for cloud providers and whenever a
+        client has been injected (tests never touch the network).
+        """
+        if self.provider != "ollama" or self._client is not None:
+            return
+
+        import httpx
+
+        root = self.cfg["base_url"].rstrip("/").removesuffix("/v1")
+        try:
+            resp = httpx.post(f"{root}/api/show", json={"model": self.model}, timeout=10.0)
+        except httpx.HTTPError as exc:
+            raise LLMUnavailable(
+                f"cannot reach Ollama at {root} ({exc}). Start it, then run "
+                "`python scripts/setup_ollama.py`."
+            ) from exc
+
+        if resp.status_code == 404:
+            raise LLMUnavailable(
+                f"Ollama has no model named {self.model!r}. "
+                "Run `python scripts/setup_ollama.py` to pull and configure it."
+            )
+        if resp.status_code >= 400:
+            raise LLMUnavailable(f"Ollama /api/show returned {resp.status_code}: {resp.text[:200]}")
+
+        num_ctx = parse_num_ctx(resp.json().get("parameters", ""))
+        required = self.required_context_tokens()
+        if num_ctx is None:
+            raise LLMUnavailable(
+                f"{self.model!r} has no num_ctx set, so Ollama would use its 4096 default "
+                f"while a batch of {self.settings.llm_batch_size} needs ~{required} tokens. "
+                "Ollama truncates from the front, which would silently drop the scoring "
+                "rubric. Run `python scripts/setup_ollama.py` to fix it."
+            )
+        if num_ctx < required:
+            raise LLMUnavailable(
+                f"{self.model!r} has num_ctx={num_ctx} but a batch of "
+                f"{self.settings.llm_batch_size} needs ~{required} tokens. Either raise it "
+                "with `python scripts/setup_ollama.py`, or lower llm.batch_size in "
+                "config/settings.yaml."
+            )
+        log.info("preflight ok: %s num_ctx=%d (needs ~%d)", self.model, num_ctx, required)
+
+    def switch_to(self, provider: str) -> None:
+        """Mid-run degradation to the fallback provider (§5 step 6)."""
+        self.degraded_from = self.provider
+        self.provider = provider
+        self.cfg = self.settings.llm_config(provider)
+        self.model = self.cfg["model"]
+        self._client = None
+        log.warning("LLM degraded from %s to %s", self.degraded_from, provider)
+
+    # ── the call ──
+
+    # ── per-model capabilities ──
+
+    def supports_strict_json(self) -> bool:
+        """Can this model be constrained to the schema while decoding?"""
+        return self.model in STRICT_JSON_MODELS
+
+    def is_reasoning_model(self) -> bool:
+        return any(self.model.startswith(prefix) for prefix in REASONING_MODELS)
+
+    def call_kwargs(self) -> dict[str, Any]:
+        """The provider-specific half of the Chat Completions call.
+
+        Everything here is additive and gated on the *model*, so a provider that
+        has never heard of these parameters never sees them — which is what
+        keeps zai, deepseek and ollama byte-identical to v1.
+        """
+        extra: dict[str, Any] = {}
+        if self.is_reasoning_model():
+            extra["reasoning_effort"] = self.settings.llm_reasoning_effort
+            # Groq rejects reasoning_format=raw when JSON mode is on (400), and
+            # `hidden` keeps the trace out of the content we have to parse.
+            extra["extra_body"] = {"reasoning_format": "hidden"}
+        return extra
+
+    def _complete(self, messages: list[dict[str, str]]) -> str:
+        resp = self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            temperature=self.settings.llm_temperature,
+            top_p=1,
+            max_tokens=self.settings.llm_max_tokens,
+            response_format=response_format(strict=self.supports_strict_json()),
+            **self.call_kwargs(),
+        )
+        usage = getattr(resp, "usage", None)
+        self.usage.add(
+            int(getattr(usage, "prompt_tokens", 0) or 0),
+            int(getattr(usage, "completion_tokens", 0) or 0),
+        )
+        choice = resp.choices[0] if resp.choices else None
+        return (getattr(choice.message, "content", "") or "") if choice else ""
+
+    def score_batch(
+        self,
+        candidates: list[dict[str, Any]],
+        company: Company | None,
+        role: Role | None,
+    ) -> BatchOutcome:
+        """Score up to `llm_batch_size` candidates sharing one company+role context.
+
+        Batching keeps the system prompt cached (huge on DeepSeek: cache-hit
+        input is $0.0028/1M vs $0.14/1M) and cuts request count 8×, which
+        matters against Z.ai's ~1,000/day free ceiling.
+        """
+        if not candidates:
+            return BatchOutcome(model=self.model, provider=self.provider)
+
+        ids = [int(c["id"]) for c in candidates]
+        user_prompt = render_user_prompt(company, role, candidates, self.settings.prompt_version)
+        messages = [
+            {"role": "system", "content": self.system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+
+        try:
+            text = self._complete(messages)
+        except Exception as exc:  # noqa: BLE001 - provider SDKs raise many shapes
+            kind = classify_error(exc)
+            if kind == "rate_limit":
+                raise LLMRateLimited(str(exc), retry_after_seconds(exc)) from exc
+            if kind == "quota":
+                raise QuotaExhausted(str(exc)) from exc
+            log.error("LLM call failed: %s", exc)
+            return BatchOutcome(
+                needs_review=ids, model=self.model, provider=self.provider,
+                error=str(exc)[:300], provider_error=True,
+            )
+
+        parsed = parse_batch(text)
+
+        # ladder step 3: one corrective retry
+        if parsed is None:
+            log.warning("LLM reply was not valid JSON; retrying once with a correction")
+            messages.append({"role": "assistant", "content": text[:2000]})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": "Your previous reply was not valid JSON. Return ONLY the JSON object.",
+                }
+            )
+            try:
+                text = self._complete(messages)
+            except Exception as exc:  # noqa: BLE001
+                kind = classify_error(exc)
+                if kind == "rate_limit":
+                    raise LLMRateLimited(str(exc), retry_after_seconds(exc)) from exc
+                if kind == "quota":
+                    raise QuotaExhausted(str(exc)) from exc
+                return BatchOutcome(
+                    needs_review=ids, model=self.model, provider=self.provider,
+                    error=str(exc)[:300], provider_error=True,
+                )
+            parsed = parse_batch(text)
+
+        # ladder step 4: keep everyone, mark for review
+        if parsed is None:
+            log.error("LLM reply still unparseable after retry — marking batch needs_review")
+            return BatchOutcome(
+                needs_review=ids,
+                model=self.model,
+                provider=self.provider,
+                raw=text[:2000],
+                error="unparseable JSON after one retry",
+            )
+
+        by_id = {v.candidate_id: v for v in parsed.results}
+        verdicts, missing = [], []
+        for cid in ids:
+            v = by_id.get(cid)
+            if v is None:
+                missing.append(cid)
+            else:
+                verdicts.append(v)
+        if missing:
+            log.warning("LLM omitted %d candidate(s) from its reply", len(missing))
+        return BatchOutcome(
+            verdicts=verdicts,
+            needs_review=missing,
+            model=self.model,
+            provider=self.provider,
+            raw=text[:2000],
+        )
+
+    def estimated_cost(self) -> float:
+        prices = self.settings.llm_prices.get(self.provider, {"input": 0.0, "output": 0.0})
+        return self.usage.cost(prices)
+
+
+def classify_error(exc: Exception) -> str:
+    """`"quota"` | `"rate_limit"` | `"error"`.
+
+    The distinction is the whole point: one means "use a different provider",
+    the other means "wait a moment and ask the same one again".
+    """
+    text = f"{type(exc).__name__} {exc}".lower()
+    status = getattr(exc, "status_code", None) or getattr(
+        getattr(exc, "response", None), "status_code", None
+    )
+    # Specific beats generic, in both directions: "requests per day" is terminal
+    # even alongside "try again in", and "tokens per minute" is transient even
+    # alongside a billing URL.
+    if any(m in text for m in _TERMINAL_MARKERS):
+        return "quota"
+    if any(m in text for m in _TRANSIENT_MARKERS):
+        return "rate_limit"
+    if status == 402:
+        return "quota"
+    if status == 429 or any(m in text for m in _RATE_LIMIT_MARKERS):
+        return "rate_limit"
+    return "error"
+
+
+def _is_quota_error(exc: Exception) -> bool:
+    """For callers that only care that the provider said no."""
+    return classify_error(exc) in {"quota", "rate_limit"}
+
+
+#: Groq spells the wait out in prose: "Please try again in 9.622s", or
+#: "...in 1m3.2s". The SDK surfaces a `retry-after` header when there is one.
+_RETRY_AFTER_RE = re.compile(r"try again in\s+(?:(\d+)m)?([\d.]+)s", re.I)
+
+
+def retry_after_seconds(exc: Exception, default: float = 5.0) -> float:
+    headers = getattr(getattr(exc, "response", None), "headers", None)
+    if headers is not None:
+        for key in ("retry-after", "Retry-After", "x-ratelimit-reset-tokens"):
+            raw = None
+            with contextlib.suppress(Exception):
+                raw = headers.get(key)
+            if raw:
+                with contextlib.suppress(TypeError, ValueError):
+                    return max(0.0, float(str(raw).rstrip("s")))
+    match = _RETRY_AFTER_RE.search(str(exc))
+    if match:
+        return float(match.group(1) or 0) * 60 + float(match.group(2))
+    return default
+
+
+def batched(items: list[Any], size: int) -> list[list[Any]]:
+    size = max(1, int(size))
+    return [items[i : i + size] for i in range(0, len(items), size)]
+
+
+def parse_num_ctx(parameters: str) -> int | None:
+    """Pull `num_ctx` out of the `parameters` block `/api/show` returns.
+
+    The block is whitespace-aligned key/value lines, e.g.::
+
+        num_ctx                        8192
+        stop                           "<|im_end|>"
+    """
+    for line in (parameters or "").splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[0] == "num_ctx":
+            try:
+                return int(parts[1])
+            except ValueError:
+                return None
+    return None
+
+
+def list_models(
+    settings: Settings, provider: str = "groq", *, timeout: float = 15.0
+) -> list[str]:
+    """`GET {base_url}/models` — what this key can actually reach today.
+
+    Groq deprecates model IDs on short notice, so nothing in PitWall hardcodes
+    one: `scripts/setup_groq.py` calls this at setup time and checks the
+    configured `LLM_MODEL` against the answer. Every OpenAI-compatible provider
+    serves this endpoint, so it works for zai and deepseek too.
+    """
+    import httpx
+
+    cfg = settings.llm_config(provider)
+    key = cfg.get("api_key") or ""
+    if not key and provider != "ollama":
+        raise LLMUnavailable(
+            f"no API key for {provider!r} — set "
+            f"{PROVIDERS.get(provider, {}).get('key_env', 'the API key')} in .env"
+        )
+    url = f"{str(cfg['base_url']).rstrip('/')}/models"
+    try:
+        resp = httpx.get(url, headers={"Authorization": f"Bearer {key}"}, timeout=timeout)
+    except httpx.HTTPError as exc:
+        raise LLMUnavailable(f"cannot reach {url}: {exc}") from exc
+    if resp.status_code in (401, 403):
+        raise LLMUnavailable(
+            f"{provider} rejected the API key ({resp.status_code}). Check "
+            f"{PROVIDERS.get(provider, {}).get('key_env', 'the key')} in .env."
+        )
+    if resp.status_code >= 400:
+        raise LLMUnavailable(f"{url} returned {resp.status_code}: {resp.text[:200]}")
+    data = resp.json()
+    rows = data.get("data") if isinstance(data, dict) else data
+    return sorted(str(r.get("id")) for r in (rows or []) if isinstance(r, dict) and r.get("id"))
+
+
+def ollama_reachable(base_url: str, timeout: float = 2.0) -> bool:
+    """Cheap health check used before degrading to the local fallback."""
+    import httpx
+
+    root = base_url.rstrip("/").removesuffix("/v1")
+    try:
+        return httpx.get(f"{root}/api/tags", timeout=timeout).status_code == 200
+    except httpx.HTTPError:
+        return False

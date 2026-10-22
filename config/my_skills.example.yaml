@@ -1,0 +1,40 @@
+# Your skill inventory for the JOB SEARCH (ranking postings against what you know).
+#
+# THIS IS THE EXAMPLE. It loads only while config/my_skills.yaml does not exist.
+# The Settings page writes that file (gitignored) the first time you save, or
+# generate it from your CV profile with:
+#
+#     make profile-sync        # writes config/my_skills.yaml and config/my_profile.md
+#
+#   skill        any name or synonym from config/skills_vocab.yaml
+#   proficiency  1 = touched it, 2 = working knowledge, 3 = strong
+#   years        optional
+#   evidence     where you used it — what a CV line could point to
+#
+# A skill missing here reads as "missing" on every job that asks for it, so
+# list what you can defend in an interview, and nothing else.
+
+skills:
+  # programming
+  - {skill: Python, proficiency: 3, evidence: [Northwind internship, demand forecasting project]}
+  - {skill: SQL, proficiency: 3, evidence: [BrightPath dashboard, library warehouse project]}
+  - {skill: R, proficiency: 1}
+  # machine learning
+  - {skill: Machine Learning, proficiency: 2, evidence: [churn model, demand model]}
+  - {skill: Deep Learning, proficiency: 2, evidence: [review classifier, plant CNN]}
+  - {skill: NLP, proficiency: 2, evidence: [review classifier]}
+  - {skill: Computer Vision, proficiency: 1, evidence: [plant CNN]}
+  - {skill: Time Series, proficiency: 2, evidence: [demand forecasting project]}
+  - {skill: Reinforcement Learning, proficiency: 1, evidence: [warehouse routing project]}
+  # statistics
+  - {skill: Statistics, proficiency: 2}
+  - {skill: Hypothesis Testing, proficiency: 2, evidence: [A/B test toolkit]}
+  - {skill: A/B Testing, proficiency: 2, evidence: [A/B test toolkit, pricing experiments]}
+  - {skill: Model Evaluation, proficiency: 2}
+  # engineering
+  - {skill: Git, proficiency: 2}
+  - {skill: Docker, proficiency: 2, evidence: [churn API]}
+  - {skill: APIs, proficiency: 2, evidence: [churn API]}
+  - {skill: Data Pipelines, proficiency: 2, evidence: [taxi ETL]}
+  - {skill: Spark, proficiency: 1, evidence: [taxi ETL]}
+  - {skill: Testing, proficiency: 2}

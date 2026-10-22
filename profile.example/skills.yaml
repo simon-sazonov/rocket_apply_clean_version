@@ -1,0 +1,106 @@
+# skills.yaml — the four skill rows on the CV, and every skill you can claim.
+#
+# EXAMPLE DATA for a made-up person. Replace with your own.
+#
+# HOW IT WORKS
+#   rows:   the four CV rows and how many characters each may hold. `pinned` items
+#           always print; the rest are chosen per job from the skills below.
+#   skills: one record per skill.
+#     row         which CV row it can print in (row.programming / row.methods / row.tools)
+#     confidence  high | medium | low | none — the honesty mechanism:
+#                   high   needs 2+ evidence ids
+#                   medium needs 1+ evidence id
+#                   low    needs `low_phrasing` (how a letter may mention it) and never prints
+#                   none   a GAP: never prints, and if a job asks for it the letter
+#                          writer is forbidden to claim it
+#     evidence    bullet ids from experience.yaml / projects.yaml (or edu.* ids) that prove it
+#     printable   may it appear on the CV at all
+#     pin         always print it in its row
+#     aliases     other names a posting might use ("sklearn" for scikit-learn)
+#
+#   Optional: `evidence_private: true` + `note:` for real work you cannot link to,
+#   and `letter_policy: skills_row_only` for a skill that may print in a row but
+#   never be elaborated in letter prose.
+
+rows:
+  row.programming:
+    lines: 1
+    max_chars: 95
+    pinned: [Python, SQL]
+  row.methods:
+    lines: 2
+    max_chars: 195
+    pinned: [Machine Learning]
+  row.tools:
+    lines: 2
+    max_chars: 195
+    pinned: [pandas, scikit-learn]
+  row.spoken:
+    lines: 1
+    max_chars: 105
+    fixed: true
+    fixed_text: "English (native), Spanish (B2), German (A2)"
+
+skills:
+  # ── row 1 · programming languages ──
+  - {id: skill.python, name: Python, row: row.programming, category: programming, confidence: high, pin: true, printable: true, aliases: [python3], evidence: [northwind.b1, northwind.b2, unilab.b1, proj.ab_test.b1]}
+  - {id: skill.sql, name: SQL, row: row.programming, category: programming, confidence: high, pin: true, printable: true, aliases: [postgres sql], evidence: [brightpath.b1, proj.sql_warehouse.b1, proj.taxi_pipeline.b1]}
+  - {id: skill.bash, name: Bash, row: row.programming, category: programming, confidence: low, printable: false, low_phrasing: "comfortable with shell scripting for data tasks", evidence: []}
+  - {id: skill.r, name: R, row: row.programming, category: programming, confidence: medium, printable: true, evidence: [edu.msc]}
+  - {id: skill.pyspark_sql, name: Spark SQL, row: row.programming, category: programming, confidence: medium, printable: true, evidence: [proj.taxi_pipeline.b1]}
+  # Real work you cannot link to: printable and claimable, but a letter may never
+  # name a project for it.
+  - {id: skill.typescript, name: TypeScript, row: row.programming, category: programming, confidence: medium, printable: true, evidence_private: true, note: "Used in a private freelance web project; no public repository.", evidence: []}
+  - {id: skill.latex, name: LaTeX, row: row.programming, category: programming, confidence: medium, printable: true, evidence: [edu.bsc]}
+
+  # ── row 2 · methods ──
+  - {id: skill.ml, name: Machine Learning, row: row.methods, category: ml, confidence: high, pin: true, printable: true, aliases: [machine_learning, ml], evidence: [northwind.b1, brightpath.b2, proj.churn_api.b1]}
+  - {id: skill.forecasting, name: Time-Series Forecasting, row: row.methods, category: ml, confidence: high, printable: true, aliases: [forecasting, time_series, time series], evidence: [northwind.b1, proj.forecast.b1, proj.forecast.b2]}
+  - {id: skill.nlp, name: NLP, row: row.methods, category: ml, confidence: medium, printable: true, aliases: [nlp, text classification, transformers], evidence: [proj.reviews_nlp.b1]}
+  - {id: skill.deep_learning, name: Deep Learning, row: row.methods, category: ml, confidence: high, printable: true, aliases: [deep_learning, neural networks, cnn], evidence: [proj.reviews_nlp.b1, proj.image_cnn.b1, proj.image_cnn.b2]}
+  - {id: skill.rl, name: Reinforcement Learning, row: row.methods, category: ml, confidence: high, printable: true, aliases: [reinforcement_learning, q-learning, ppo], evidence: [proj.rl_gridworld.b1, proj.rl_gridworld.b2]}
+  - {id: skill.statistics, name: Statistics, row: row.methods, category: ml, confidence: high, printable: true, aliases: [statistics, hypothesis_testing], evidence: [proj.ab_test.b1, brightpath.b3]}
+  - {id: skill.ab_testing, name: A/B Testing, row: row.methods, category: ml, confidence: high, printable: true, aliases: [ab_testing, experimentation, experimental_design], evidence: [proj.ab_test.b1, proj.ab_test.b2, brightpath.b3]}
+  - {id: skill.model_evaluation, name: Model Evaluation, row: row.methods, category: ml, confidence: high, printable: true, aliases: [model_evaluation, validation, benchmarking], evidence: [proj.forecast.b2, proj.reviews_nlp.b2, brightpath.b2]}
+  - {id: skill.feature_engineering, name: Feature Engineering, row: row.methods, category: ml, confidence: medium, printable: true, aliases: [feature_engineering], evidence: [northwind.b1]}
+  - {id: skill.etl, name: ETL / Data Pipelines, row: row.methods, category: data, confidence: high, printable: true, aliases: [etl, data_pipelines, pipelines], evidence: [proj.taxi_pipeline.b1, proj.sql_warehouse.b1, northwind.b2]}
+  - {id: skill.computer_vision, name: Computer Vision, row: row.methods, category: ml, confidence: medium, printable: true, aliases: [computer_vision, image classification], evidence: [proj.image_cnn.b1]}
+  - {id: skill.data_quality, name: Data Quality, row: row.methods, category: data, confidence: medium, printable: true, aliases: [data_quality], evidence: [proj.taxi_pipeline.b2]}
+  - {id: skill.data_modelling, name: Data Modelling, row: row.methods, category: data, confidence: high, printable: true, aliases: [data_modelling, dimensional_modelling, star schema], evidence: [brightpath.b1, proj.sql_warehouse.b1]}
+
+  # ── row 3 · tools ──
+  - {id: skill.pandas, name: pandas, row: row.tools, category: tools, confidence: high, pin: true, printable: true, evidence: [northwind.b2, northwind.b1]}
+  - {id: skill.sklearn, name: scikit-learn, row: row.tools, category: tools, confidence: high, pin: true, printable: true, aliases: [sklearn], evidence: [brightpath.b2, proj.churn_api.b1]}
+  - {id: skill.pytorch, name: PyTorch, row: row.tools, category: tools, confidence: medium, printable: true, evidence: [proj.reviews_nlp.b1]}
+  - {id: skill.tensorflow, name: TensorFlow, row: row.tools, category: tools, confidence: medium, printable: true, aliases: [keras], evidence: [proj.image_cnn.b1]}
+  - {id: skill.huggingface, name: Hugging Face, row: row.tools, category: tools, confidence: medium, printable: true, aliases: [transformers library], evidence: [proj.reviews_nlp.b1]}
+  - {id: skill.spark, name: PySpark, row: row.tools, category: tools, confidence: medium, printable: true, aliases: [spark, pyspark], evidence: [proj.taxi_pipeline.b1]}
+  - {id: skill.postgresql, name: PostgreSQL, row: row.tools, category: tools, confidence: high, printable: true, aliases: [postgres], evidence: [brightpath.b1, proj.sql_warehouse.b2]}
+  - {id: skill.docker, name: Docker, row: row.tools, category: tools, confidence: medium, printable: true, evidence: [proj.churn_api.b1]}
+  - {id: skill.fastapi, name: FastAPI, row: row.tools, category: tools, confidence: medium, printable: true, evidence: [proj.churn_api.b1]}
+  - {id: skill.mlflow, name: MLflow, row: row.tools, category: tools, confidence: medium, printable: true, evidence: [proj.churn_api.b1]}
+  - {id: skill.pytest, name: pytest, row: row.tools, category: tools, confidence: medium, printable: true, aliases: [testing], evidence: [proj.churn_api.b2]}
+  - {id: skill.gymnasium, name: Gymnasium, row: row.tools, category: tools, confidence: medium, printable: true, evidence: [proj.rl_gridworld.b1]}
+  - {id: skill.streamlit, name: Streamlit, row: row.tools, category: tools, confidence: medium, printable: true, evidence: [unilab.b1]}
+  - {id: skill.numpy, name: NumPy, row: row.tools, category: tools, confidence: high, printable: true, evidence: [proj.ab_test.b2, northwind.b1]}
+  - {id: skill.matplotlib, name: Matplotlib, row: row.tools, category: tools, confidence: medium, printable: true, aliases: [data visualisation, visualization], evidence: [proj.forecast.b2]}
+  - {id: skill.scipy, name: SciPy, row: row.tools, category: tools, confidence: medium, printable: true, evidence: [proj.ab_test.b1]}
+  - {id: skill.statsmodels, name: statsmodels, row: row.tools, category: tools, confidence: medium, printable: true, aliases: [arima], evidence: [proj.forecast.b1]}
+  - {id: skill.lightgbm, name: LightGBM, row: row.tools, category: tools, confidence: high, printable: true, aliases: [xgboost, gradient boosting], evidence: [northwind.b1, proj.forecast.b2]}
+  - {id: skill.parquet, name: Parquet, row: row.tools, category: tools, confidence: medium, printable: true, evidence: [proj.taxi_pipeline.b1]}
+  - {id: skill.jupyter, name: Jupyter, row: row.tools, category: tools, confidence: medium, printable: true, evidence: [proj.image_cnn.b1]}
+  - {id: skill.git, name: Git, row: row.tools, category: tools, confidence: low, printable: false, low_phrasing: "use Git for all project work", evidence: []}
+
+  # ── not printed: domains and soft skills, so a posting asking for them still matches ──
+  - {id: skill.communication, name: Communication, category: soft, confidence: high, printable: false, aliases: [communication, stakeholder_management], evidence: [northwind.b3, brightpath.b3]}
+
+  # ── GAP MAP — confidence: none ──
+  # Never printed. When a posting asks for one, the letter writer is forbidden to
+  # claim it for that application. Doubles as your learning roadmap.
+  - {id: skill.aws, name: AWS, row: row.tools, category: gap, confidence: none, printable: false, evidence: []}
+  - {id: skill.gcp, name: GCP, row: row.tools, category: gap, confidence: none, printable: false, evidence: []}
+  - {id: skill.kubernetes, name: Kubernetes, row: row.tools, category: gap, confidence: none, printable: false, evidence: []}
+  - {id: skill.airflow, name: Airflow, row: row.tools, category: gap, confidence: none, printable: false, evidence: []}
+  - {id: skill.tableau, name: Tableau, row: row.tools, category: gap, confidence: none, printable: false, evidence: []}
+  - {id: skill.causal, name: Causal Inference, row: row.methods, category: gap, confidence: none, printable: false, evidence: []}
+  - {id: skill.java, name: Java, row: row.programming, category: gap, confidence: none, printable: false, evidence: []}

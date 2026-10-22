@@ -1,0 +1,23 @@
+# The job search's employer list: companies you want to watch for openings.
+# NOT config/companies.csv: that one drives the LinkedIn people sweep.
+#
+# THIS IS AN EXAMPLE. Copy it and make it yours (the copy is gitignored):
+#     cp config/target_companies.example.csv config/target_companies.csv
+# or edit the list on the Settings page of the app.
+#
+#   name         canonical spelling; postings are matched on it and on aliases
+#   aliases      pipe-separated: "BMW|BMW AG"
+#   country      ISO code or name; cities pipe-separated
+#   priority     A strong target · B good target · C fallback — YOUR search
+#                priority, not a rating of the company. Worth up to 5 points.
+#   careers_url  shown as a link for employers without a public ATS board
+#   ats_kind / ats_token   filled by `make job-targets-ats`; edit by hand to override
+#   sponsorship  yes | sometimes | no | unknown — your own note. It can only
+#                lift a silent posting to "likely"; what a posting says wins.
+#   tags         pipe-separated, free text
+name,aliases,country,cities,industry,priority,careers_url,ats_kind,ats_token,sponsorship,visa_notes,tags,active
+Spotify,Spotify AB,SE,Stockholm|London,Music streaming,A,https://www.lifeatspotify.com/jobs,,,unknown,,ml|recommendation,true
+Booking.com,Booking,NL,Amsterdam,Travel,A,https://jobs.booking.com,,,unknown,,ml|experimentation,true
+Monzo,Monzo Bank,GB,London,Fintech,B,https://monzo.com/careers,,,unknown,,data science|fintech,true
+Zalando,Zalando SE,DE,Berlin,E-commerce,B,https://jobs.zalando.com,,,unknown,,forecasting|ml,true
+Ocado Technology,Ocado|Ocado Group,GB,Hatfield|London,Retail tech,C,https://careers.ocadogroup.com,,,unknown,,forecasting|robotics,true

@@ -1,0 +1,68 @@
+# forbidden.yaml — what a generated CV or letter must never say about you.
+#
+# EXAMPLE DATA for a made-up person. Adjust to your own situation.
+# The fact-checker blocks a letter that breaks any of these.
+
+# Claims you cannot back up.
+never_claim:
+  - team leadership
+  - managing people
+  - years of professional experience beyond internship and part-time work
+  - production ML deployment to real users
+  - published research
+  - AWS / Azure / GCP hands-on infrastructure work
+  - Kubernetes
+  - Airflow
+  - causal inference
+
+# Whole topics a letter may not raise at all, even if the posting asks.
+# Remove these lines if you WANT letters to mention your work authorisation.
+never_mention:
+  - work authorisation or authorization
+  - visa, sponsorship, or the need for either
+  - residence permit or residency status
+  - nationality or citizenship
+  - right to work
+
+# Framings to avoid.
+never_say:
+  - anything implying an internship was permanent employment
+  - anything implying an academic project was commercial work
+  - anything implying sole authorship of a team project
+
+# Specific pieces of work that belong to teammates, so a letter can never absorb them.
+# `block_terms` are the phrases the checker looks for.
+not_my_work:
+  - id: nmw.taxi_dashboard
+    claim_to_block: "the Grafana monitoring dashboard in the taxi ETL project"
+    reason: "A teammate built it. Yours were the ingestion and data-quality stages."
+    block_terms: [Grafana, "monitoring dashboard"]
+  - id: nmw.warehouse_api
+    claim_to_block: "the REST API on top of the library warehouse"
+    reason: "A teammate wrote it. Yours was the star schema and the load scripts."
+    block_terms: ["warehouse API", "REST API on top of the library warehouse"]
+
+# Repositories where git history does not show who did what. Be ready to explain.
+attribution_caveats:
+  - id: ac.taxi_pipeline
+    repo: "your-handle/taxi-etl"
+    issue: "bulk upload by a teammate - no per-author history"
+
+# "X in Y" — a technique you really have, but must not claim in a particular place.
+never_claim_specifically:
+  - reinforcement learning in the Northwind internship / demand forecasting work
+  - RL or a learned policy in the demand model or churn model
+
+# Verbs that overstate a junior role. Small models reach for them as filler.
+gated_verbs:
+  - led
+  - owned
+  - managed
+  - architected
+  - spearheaded
+  - directed
+  - headed
+  - founded
+  - co-founded
+
+preferred_verbs: [built, designed, implemented, benchmarked, validated, measured, tuned, modelled, analysed, wrote, shipped, co-built, contributed]

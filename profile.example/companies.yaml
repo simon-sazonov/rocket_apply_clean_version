@@ -1,0 +1,23 @@
+# companies.yaml — your own notes on employers you care about.
+#
+# Only `notes` and `angle` reach the letter writer, as the "why this company"
+# material. Where no entry matches, `pitwall apply research` can draft notes from
+# the company's public pages into a cache you can copy from. Where neither has
+# anything, the letter simply says nothing about the company (better than flattery).
+#
+# The name is matched on its normalised form, so `name: Example` also catches
+# "Example Technology GmbH". Genuinely different words need an alias.
+#
+# Template:
+#
+# - id: co.example
+#   name: Example
+#   aliases: []
+#   notes: >
+#     What their team actually works on, in your words, from their engineering blog,
+#     papers or job posting. Specific enough that it could not describe a competitor.
+#   angle: >
+#     The honest connection to your own work.
+#   source_urls: []
+
+[]

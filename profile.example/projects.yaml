@@ -1,0 +1,216 @@
+# projects.yaml — THE VARIABLE SLOT. RocketApply picks the 3 projects that best fit
+# each job and prints only those.
+#
+# EXAMPLE DATA for a made-up person. Replace with your own projects.
+#
+# Shape rules (checked by `make validate-profile`):
+#   - at least 8 projects, so there is a real choice per job
+#   - exactly 2 bullets per project
+#   - every bullet 55-95 characters, so each project costs exactly 3 lines on the CV
+#   - project name + link label <= 90 characters
+#   - every bullet needs at least 3 tags from taxonomy.yaml
+#
+# readme_state: ok | stub | none. For stub/none the CV keeps the project but drops
+# the "GitHub" link label: a linked repo with an empty README reads as abandoned.
+#
+# conflicts_with: experience bullet ids describing the same work. The selector will
+# never print both on one page.
+
+- id: proj.forecast
+  type: project
+  name: "Retail Demand Forecasting Benchmark"
+  link_label: GitHub
+  url: https://github.com/your-handle/demand-forecasting
+  readme_state: ok
+  context_type: personal
+  period: 2026-03/2026-05
+  team_size: 1
+  stack: [Python, pandas, LightGBM, statsmodels]
+  themes: [forecasting, model_evaluation]
+  summary: >
+    Compared seasonal-naive, ARIMA and gradient-boosted models on a public retail
+    dataset with a rolling-origin evaluation.
+  strength: strong
+  use_for: [data_science, machine_learning, analytics]
+  bullets:
+    - id: proj.forecast.b1
+      text: "Benchmarked naive, ARIMA and gradient-boosted forecasts with rolling-origin validation"
+      tags: [forecasting, time_series, model_evaluation, benchmarking]
+      metrics: []
+    - id: proj.forecast.b2
+      text: "Boosted model cut MASE from 1.00 to 0.82; wrote up where it still loses to naive"
+      tags: [gradient_boosting, model_evaluation, documentation]
+      metrics: [m.forecast.mase]
+
+- id: proj.reviews_nlp
+  type: project
+  name: "Product Review Classifier – Fine-tuned Transformer"
+  link_label: GitHub
+  url: https://github.com/your-handle/review-classifier
+  readme_state: ok
+  context_type: academic
+  period: 2026-02/2026-03
+  team_size: 1
+  stack: [Python, PyTorch, Hugging Face]
+  themes: [nlp, deep_learning]
+  summary: Fine-tuned a small transformer to classify product reviews by issue type.
+  strength: strong
+  use_for: [machine_learning, data_science]
+  bullets:
+    - id: proj.reviews_nlp.b1
+      text: "Fine-tuned DistilBERT on 12,000 labelled reviews to tag five complaint categories"
+      tags: [nlp, transformers, fine_tuning, text_classification, huggingface]
+      metrics: []
+    - id: proj.reviews_nlp.b2
+      text: "Reached macro-F1 0.79 against 0.61 for a TF-IDF baseline, with an error analysis"
+      tags: [model_evaluation, nlp, benchmarking]
+      metrics: [m.reviews.f1]
+
+- id: proj.taxi_pipeline
+  type: project
+  name: "City Taxi Trips ETL – PySpark"
+  link_label: GitHub
+  url: https://github.com/your-handle/taxi-etl
+  readme_state: ok
+  context_type: academic
+  period: 2026-01/2026-02
+  team_size: 3
+  role_note: "Team of three. I wrote the ingestion and data-quality stages."
+  stack: [PySpark, Parquet, SQL]
+  themes: [data_engineering, big_data]
+  summary: Batch ETL over a year of public taxi trips into a partitioned Parquet store.
+  strength: medium
+  use_for: [data_engineering, data_science]
+  bullets:
+    - id: proj.taxi_pipeline.b1
+      text: "Co-built a PySpark ETL over a year of public taxi trips into partitioned Parquet"
+      tags: [pyspark, etl, parquet, big_data, data_engineering]
+      metrics: []
+    - id: proj.taxi_pipeline.b2
+      text: "Wrote the data-quality checks that quarantined malformed rows instead of dropping them"
+      tags: [data_quality, data_pipelines, testing]
+      metrics: []
+
+- id: proj.churn_api
+  type: project
+  name: "Churn Model Serving – FastAPI and Docker"
+  link_label: GitHub
+  url: https://github.com/your-handle/churn-api
+  readme_state: ok
+  context_type: personal
+  period: 2026-04
+  team_size: 1
+  stack: [FastAPI, Docker, scikit-learn, MLflow, pytest]
+  themes: [mlops, deployment]
+  summary: Packaged a churn model behind an API with experiment tracking and tests.
+  # The same churn work is already on the CV as brightpath.b2, so the selector
+  # never prints both on one page.
+  conflicts_with: [brightpath.b2]
+  strength: medium
+  use_for: [machine_learning, data_engineering, software]
+  bullets:
+    - id: proj.churn_api.b1
+      text: "Served a scikit-learn churn model through FastAPI in Docker, tracked with MLflow"
+      tags: [fastapi, docker, mlflow, model_serving, scikit-learn]
+      metrics: []
+    - id: proj.churn_api.b2
+      text: "Added pytest checks that API predictions match the notebook model on a fixed sample"
+      tags: [testing, pytest, train_serve_consistency]
+      metrics: []
+
+- id: proj.image_cnn
+  type: project
+  name: "Plant Disease Detection – CNN from Scratch"
+  link_label: GitHub
+  url: https://github.com/your-handle/plant-cnn
+  readme_state: stub
+  context_type: academic
+  period: 2025-11/2025-12
+  team_size: 2
+  stack: [Python, TensorFlow, Keras]
+  themes: [computer_vision, deep_learning]
+  summary: Small CNN classifying leaf images, trained without pretrained weights.
+  strength: medium
+  use_for: [machine_learning, research]
+  bullets:
+    - id: proj.image_cnn.b1
+      text: "Trained a CNN from scratch on 8,000 leaf images across six disease classes"
+      tags: [cnn, computer_vision, deep_learning, tensorflow]
+      metrics: []
+    - id: proj.image_cnn.b2
+      text: "Used augmentation and early stopping to lift test accuracy from 71% to 86%"
+      tags: [regularization, model_evaluation, deep_learning]
+      metrics: [m.cnn.accuracy]
+
+- id: proj.ab_test
+  type: project
+  name: "A/B Test Analysis Toolkit"
+  link_label: GitHub
+  url: https://github.com/your-handle/ab-toolkit
+  readme_state: ok
+  context_type: personal
+  period: 2025-09/2025-10
+  team_size: 1
+  stack: [Python, SciPy, statsmodels]
+  themes: [experimentation, statistics]
+  summary: Small library for sample-size planning and analysing two-variant tests.
+  strength: medium
+  use_for: [analytics, data_science]
+  bullets:
+    - id: proj.ab_test.b1
+      text: "Wrote a small Python library for sample-size planning and two-variant test analysis"
+      tags: [ab_testing, statistics, hypothesis_testing, python]
+      metrics: []
+    - id: proj.ab_test.b2
+      text: "Simulated 10,000 experiments to check the false-positive rate stays at the 5% target"
+      tags: [simulation, monte_carlo, validation]
+      metrics: []
+
+- id: proj.sql_warehouse
+  type: project
+  name: "Library Lending Data Warehouse – PostgreSQL"
+  link_label: GitHub
+  url: https://github.com/your-handle/library-warehouse
+  readme_state: ok
+  context_type: academic
+  period: 2025-03/2025-04
+  team_size: 4
+  role_note: "Team of four. I designed the star schema and wrote the load scripts."
+  stack: [PostgreSQL, SQL, Python]
+  themes: [databases, dimensional_modelling]
+  summary: Star-schema warehouse over five years of library lending records.
+  strength: medium
+  use_for: [data_engineering, analytics]
+  bullets:
+    - id: proj.sql_warehouse.b1
+      text: "Designed a star schema over five years of lending records and wrote the load scripts"
+      tags: [dimensional_modelling, sql, postgresql, etl]
+      metrics: []
+    - id: proj.sql_warehouse.b2
+      text: "Added indexes that brought the slowest dashboard query from 9 seconds to under 1"
+      tags: [indexing, query_optimization, performance]
+      metrics: []
+
+- id: proj.rl_gridworld
+  type: project
+  name: "Warehouse Robot Routing – Reinforcement Learning"
+  link_label: GitHub
+  url: https://github.com/your-handle/rl-routing
+  readme_state: ok
+  context_type: academic
+  period: 2025-05/2025-06
+  team_size: 1
+  stack: [Python, Gymnasium, Stable-Baselines3]
+  themes: [reinforcement_learning, decision_making]
+  summary: Compared tabular Q-learning and PPO on a custom warehouse-routing environment.
+  strength: medium
+  use_for: [machine_learning, research]
+  bullets:
+    - id: proj.rl_gridworld.b1
+      text: "Built a Gymnasium environment for warehouse routing and compared Q-learning with PPO"
+      tags: [reinforcement_learning, gymnasium, mdp, benchmarking]
+      metrics: []
+    - id: proj.rl_gridworld.b2
+      text: "Shaped the reward to cut collisions, and reported where PPO did not beat Q-learning"
+      tags: [reward_shaping, reinforcement_learning, model_evaluation]
+      metrics: []

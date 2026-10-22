@@ -1,0 +1,233 @@
+# taxonomy.yaml — the canonical tag vocabulary.
+#
+# Tags are how RocketApply matches your experience to a job posting. Matching
+# works on exact strings, so every tag used anywhere in profile/ must appear
+# below (the validator rejects anything that does not).
+#
+# Tags that none of your bullets use are still worth keeping: they let a POSTING
+# that names that thing resolve to something. Add your own tags freely — just add
+# them here first.
+
+aliases:
+  # left-hand side is REJECTED, right-hand side is canonical
+  ML: machine_learning
+  machine learning: machine_learning
+  deep learning: deep_learning
+  RL: reinforcement_learning
+  time series: time_series
+  er_modelling: data_modelling
+  risk_modeling: risk_modelling
+  NLP: nlp
+  LLM: llm
+
+canonical:
+  ml_core:
+  - scikit-learn
+  - xgboost
+  - gradient_boosting
+  - shap
+  - optuna
+  - hyperparameter_optimization
+  - calibration
+  - data_mining
+  - recommender_systems
+  - machine_learning
+  - classification
+  - regression
+  - clustering
+  - model_evaluation
+  - model_selection
+  - cross_validation
+  - class_imbalance
+  - feature_engineering
+  - threshold_tuning
+  - explainability
+  - churn_prediction
+  - rfm
+  - association_rules
+  - labelling
+  - benchmarking
+  - ablation
+  deep_learning:
+  - pytorch
+  - neural_networks
+  - fine_tuning
+  - deep_learning
+  - cnn
+  - computer_vision
+  - transformers
+  - tensorflow
+  - regularization
+  nlp_llm:
+  - huggingface
+  - langchain
+  - nltk
+  - ollama
+  - groq
+  - azure_openai
+  - tool_calling
+  - rag
+  - prompt_engineering
+  - nlp
+  - text_classification
+  - llm
+  - agents
+  rl_decision:
+  - gymnasium
+  - stable-baselines3
+  - policy_optimization
+  - reinforcement_learning
+  - mdp
+  - reward_shaping
+  - decision_making
+  - multi_objective
+  simulation_optimisation:
+  - simulated_annealing
+  - scipy
+  - monte_carlo
+  - simulation
+  - probability
+  - optimization
+  - genetic_algorithms
+  - metaheuristics
+  - grid_search
+  - walk_forward
+  - risk_modelling
+  stats:
+  - forecasting
+  - causal_inference
+  - bayesian
+  - statistics
+  - hypothesis_testing
+  - experimental_design
+  - eda
+  - validation
+  time_series_quant:
+  - time_series
+  - look_ahead_bias
+  - signal_design
+  - backtesting
+  - finance
+  - quantitative
+  data_engineering:
+  - data_pipelines
+  - spark
+  - spark_sql
+  - spark_mllib
+  - airflow
+  - dbt
+  - entity_resolution
+  - streaming
+  - data_engineering
+  - etl
+  - pipelines
+  - data_quality
+  - dimensional_modelling
+  - data_modelling
+  - normalization
+  - big_data
+  - pyspark
+  - parquet
+  - feature_store
+  - kedro
+  databases:
+  - sqlite
+  - sql_server
+  - postgresql
+  - snowflake
+  - bigquery
+  - redis
+  - databases
+  - sql
+  - t_sql
+  - mongodb
+  - nosql
+  - indexing
+  - query_optimization
+  - performance
+  - business_rules
+  - firebase
+  mlops:
+  - kubernetes
+  - aws
+  - gcp
+  - azure
+  - github_actions
+  - evidently
+  - drift_monitoring
+  - model_serving
+  - experiment_tracking
+  - terraform
+  - mlops
+  - mlflow
+  - docker
+  - fastapi
+  - monitoring
+  - drift_detection
+  - deployment
+  - train_serve_consistency
+  - ci_cd
+  software:
+  - software_engineering
+  - pytest
+  - mypy
+  - ruff
+  - version_control
+  - cpp
+  - typescript
+  - latex
+  - c#
+  - r
+  - jupyter
+  - streamlit
+  - api_design
+  - linux
+  - git/github
+  - scala
+  - java
+  - go
+  - rust
+  - software
+  - system_design
+  - testing
+  - python
+  - numpy
+  - pandas
+  - caching
+  - uml
+  - access_control
+  - react
+  - javascript
+  - kotlin
+  - mobile
+  - web_development
+  - teamwork
+  analytics_bi:
+  - data_visualization
+  - matplotlib
+  - tableau
+  - looker
+  - ab_testing
+  - experimentation
+  - analytics
+  - business_intelligence
+  - power_bi
+  - dax
+  - visualization
+  symbolic:
+  - symbolic_ai
+  - prolog
+  - logic_programming
+  - knowledge_representation
+  - assembly
+  professional:
+  - gdpr
+  - mentoring
+  - agile
+  - documentation
+  - communication
+  - stakeholder_management
+  - requirements
+  - process_optimization
+  - bpmn
+  - bottleneck_analysis

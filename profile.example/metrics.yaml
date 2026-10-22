@@ -1,0 +1,54 @@
+# metrics.yaml — every measured result a CV bullet or letter may quote.
+#
+# EXAMPLE DATA for a made-up person. Replace with your own.
+#
+# Rules:
+#   1. `claim` is copied word-for-word into documents. Write it as it should print.
+#   2. `method` is your answer to "how did you measure that?". Required.
+#   3. A bullet that quotes a figure lists the metric id under its `metrics:`.
+#   4. The letter fact-checker rejects any number that is not somewhere in your
+#      profile, so a model can never invent a figure for you.
+
+- id: m.northwind.error
+  claim: "cut weekly forecast error 18%"
+  raw_before: 0.221
+  raw_after: 0.181
+  unit: wape
+  method: "Weighted absolute percentage error on a 12-week hold-out, 0.221 for the existing moving-average baseline vs 0.181 for the gradient-boosted model. 18% is the relative reduction."
+  source: northwind
+  verifiable: false
+
+- id: m.brightpath.churn
+  claim: "0.81 ROC-AUC on a held-out quarter"
+  raw_value: 0.81
+  unit: roc_auc
+  method: "Logistic regression and gradient boosting compared on time-split data; boosting chosen, 0.81 ROC-AUC on the last quarter held out."
+  source: brightpath
+  verifiable: false
+
+- id: m.forecast.mase
+  claim: "cut MASE from 1.00 to 0.82"
+  raw_before: 1.00
+  raw_after: 0.82
+  unit: mase
+  method: "Rolling-origin evaluation over 26 weekly folds; seasonal-naive defines MASE 1.00."
+  source: proj.forecast
+  verifiable: true
+
+- id: m.reviews.f1
+  claim: "macro-F1 0.79 against 0.61 for a TF-IDF baseline"
+  raw_before: 0.61
+  raw_after: 0.79
+  unit: macro_f1
+  method: "Stratified 80/10/10 split, five classes; baseline is TF-IDF plus logistic regression."
+  source: proj.reviews_nlp
+  verifiable: true
+
+- id: m.cnn.accuracy
+  claim: "test accuracy from 71% to 86%"
+  raw_before: 0.71
+  raw_after: 0.86
+  unit: accuracy
+  method: "Same architecture with and without augmentation plus early stopping, one fixed test split."
+  source: proj.image_cnn
+  verifiable: true

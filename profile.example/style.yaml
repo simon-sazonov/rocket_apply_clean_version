@@ -1,0 +1,105 @@
+# style.yaml — your writing voice, for cover letters.
+#
+# EXAMPLE DATA for a made-up person. Replace with your own.
+#
+# The most important fields are `writing_samples` and `exemplars`. A model copies
+# the rhythm of real examples far better than it follows adjectives, so paste
+# paragraphs and letters YOU actually wrote, unedited.
+
+voice_notes:
+  - direct, plain sentences; no corporate padding
+  - specific over enthusiastic - name the problem, not the feeling
+  - comfortable stating limits and negative results
+  - lead with the concrete thing, then the implication
+  - short paragraphs, no more than four sentences
+
+# british | american — the letter writer follows it.
+spelling: british
+
+# Phrases the letter writer must never use. Add your own pet hates.
+banned_phrases:
+  - "I am writing to apply"
+  - "I was excited to see"
+  - "passionate about"
+  - "perfect fit"
+  - "proven track record"
+  - "leverage my skills"
+  - "dynamic environment"
+  - "wealth of experience"
+  - "as a highly motivated individual"
+  - "delve"
+  - "in today's fast-paced world"
+  - "hit the ground running"
+  - "cutting-edge"
+  - "state-of-the-art"
+  - "eager to contribute"
+  - "I am confident that"
+  - "seamlessly"
+  - "deep dive"
+
+preferred_openings:
+  - name a specific thing about the company or the problem, then connect it to your work
+  - open with a concrete result and what it was measured against
+
+signature_moves:
+  - quote the negative result alongside the positive one
+  - say what a number was measured against, not just the number
+
+# ── EXEMPLARS — whole letters you wrote ──
+#   verdict: good   a letter you were happy with; the generator imitates it
+#   verdict: avoid  one of your weaker letters; shows the generator what not to do
+# Paste the full text. Do not tidy it first.
+exemplars:
+  - id: ex.good_example
+    verdict: good
+    role: Graduate Data Scientist Placement
+    company: Brightwell
+    why: >
+      Opens on the work, prices every number against its baseline, and admits a
+      limitation before anyone asks.
+    text: |
+      Dear Hiring Manager,
+
+      This summer I built a weekly demand model for a retail-analytics consultancy and cut forecast error 18% against the moving average the team had used for years. Most of that came from one join: nobody had connected the promotion calendar to the sales data. I am applying for the Graduate Data Scientist Placement at Brightwell because your stores team works on the same problem at a much larger scale.
+
+      At university I benchmarked naive, ARIMA and gradient-boosted forecasts with rolling-origin validation. The boosted model won on average, cutting MASE from 1.00 to 0.82, but it still lost to the naive forecast in the weeks after a stock-out, and I wrote that up rather than hiding it. I would bring the habit of beating the simple baseline before trusting anything clever.
+
+      I have not worked with data at your volume yet, and I expect the engineering side to be the steepest part. I finish my MSc in July 2027, the month the placement starts, and I would move to Halden for it. I would be glad to talk it through.
+
+      Best regards,
+      Alex Morgan
+
+  - id: ex.avoid_example
+    verdict: avoid
+    role: Data Analyst
+    company: Example Bank
+    why: >
+      Lists skills instead of telling one thing properly, and closes on a generic line.
+    text: |
+      Dear Hiring Manager,
+
+      I am a highly motivated data science student with experience in Python, SQL, machine learning and data visualisation. I am excited to apply for the Data Analyst role at your company.
+
+      During my studies I have completed many projects using a range of tools and techniques. At Quillmark I helped build dashboards for the sales team. I have strong analytical and communication skills and I enjoy working in a team.
+
+      I believe I would be a great fit for your dynamic environment and I look forward to hearing from you.
+
+      Kind regards,
+      Alex Morgan
+
+# Paragraphs of your own prose (letters, reports, essays). At least one is required.
+writing_samples:
+  - id: sample.forecast
+    source: "Project write-up, demand forecasting benchmark"
+    why: Concrete, numbers against a baseline, honest about where the model loses.
+    text: >
+      The boosted model wins on average, but averages hide the weeks that matter. In
+      the three weeks after each stock-out it was worse than the naive forecast,
+      because the lag features still remembered sales that could not happen. I kept
+      those weeks in the evaluation instead of filtering them out, since a store
+      manager would see them too.
+
+length:
+  cover_letter_words: 250-330
+  cover_letter_paragraphs: 4
+  cv_pages: 1

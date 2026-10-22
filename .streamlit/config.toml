@@ -1,0 +1,10 @@
+# Shared by both apps, which are launched from the repo root so the engine's
+# relative output/, run/ and data/ paths resolve. Each app's look lives in
+# apps/<app>/.streamlit/config.toml — never add a [theme] here.
+
+[server]
+headless = true
+fileWatcherType = "auto"
+
+[browser]
+gatherUsageStats = false

@@ -1,0 +1,40 @@
+# education.yaml — the FIXED education block. Prints the same on every CV.
+# `tags` are not printed; they let the matcher find real support for a
+# requirement (a posting asking for statistics finds your statistics module).
+#
+# EXAMPLE DATA for a made-up person. Replace with your own.
+# Ids must be unique and match ^[a-z0-9_.]+$ ; skills may cite `edu.*` ids as evidence.
+
+- id: edu.northbridge
+  institution: University of Northbridge | School of Computer Science
+  location: Manchester, United Kingdom
+  degrees:
+    - id: edu.msc
+      degree: MSc Data Science
+      start: 2026-09
+      end: 2027-07
+      end_label: "expected Jul 2027"
+      concentrations: "Machine Learning; Statistics; Data Engineering"
+      coursework: "Statistical Learning; Deep Learning; Big Data Systems; Databases; Research Methods"
+      relevant_courses:
+        - {name: Statistical Learning, tags: [machine_learning, statistics, model_evaluation]}
+        - {name: Deep Learning,        tags: [deep_learning, pytorch, cnn]}
+        - {name: Big Data Systems,     tags: [spark, big_data, etl]}
+        - {name: Databases,            tags: [sql, databases, data_modelling]}
+        - {name: Research Methods,     tags: [experimental_design, hypothesis_testing]}
+    - id: edu.bsc
+      degree: BSc Mathematics with Computer Science
+      start: 2023-09
+      end: 2026-06
+      coursework: "Probability; Linear Algebra; Algorithms; Software Engineering"
+      relevant_courses:
+        - {name: Probability,          tags: [probability, statistics]}
+        - {name: Software Engineering, tags: [software_engineering, testing, python]}
+
+- id: edu.sixthform
+  institution: Riverside Sixth Form College
+  location: Leeds, United Kingdom
+  start: 2021-09
+  end: 2023-06
+  note: "A-levels: Mathematics, Further Mathematics, Physics"
+  tags: []

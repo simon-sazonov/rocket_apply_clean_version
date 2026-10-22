@@ -1,0 +1,74 @@
+# layout.yaml — the CV frame: page size, fonts, geometry and the shape of each section.
+#
+# The CV is a fixed ONE-PAGE design. Each section has a line budget, and the
+# validator checks your profile fits it. You normally only need to touch
+# `sections -> experience -> entries` (one line per job in experience.yaml, with
+# its bullet count). The geometry and fonts can stay as they are.
+
+page:
+  size: A4
+  max_pages: 1
+  column: right                      # section labels sit in the narrow left gutter
+  wrap_width_chars: 99               # calibrated so the wrapper reproduces the PDF
+  wrap_width_safe: 95                # what the validator enforces, for headroom
+
+# ── GEOMETRY — points on an A4 page. Run `make calibrate` after changing anything here.
+geometry:
+  page_width: 595.28
+  page_height: 841.89
+  margin_left: 34.2
+  margin_right: 15.28
+  margin_top: 30
+  margin_bottom: 24
+  gutter_width: 60          # 34.2 + 60 + 12 = 106.3, the content column
+  gutter_gap: 12.1
+  bullet_indent: 18.2       # content_x to the start of the bullet's text
+  rule_bleed_right: 14.78   # the section rules run past the text, to x=594.5
+  header_gap: 19            # name block to the first contact line
+  section_gap: 3.5          # last line of a section to the rule under it
+  rule_gap: 5.3             # rule to the first line of the next section
+  type:
+    body:             {font: DMSans,            size: 9.9,  leading: 15.2}
+    body_bold:        {font: DMSans-Bold,       size: 9.9,  leading: 15.2}
+    body_italic:      {font: DMSans-Italic,     size: 9.9,  leading: 15.2}
+    body_bold_italic: {font: DMSans-BoldItalic, size: 9.9,  leading: 15.2}
+    heading:          {font: DMSans-Bold,       size: 9.9,  leading: 15.2}
+    gutter:           {font: Arimo-Bold,        size: 8.5,  leading: 10.5}
+    name:             {font: ArchivoBlack,      size: 22.5, leading: 25}
+
+section_order: [contact, skills, experience, projects, education]
+
+sections:
+  - id: contact
+    fixed: true
+
+  - id: skills
+    fixed: false
+    rows:
+      - {id: row.programming, lines: 1, max_chars: 95,  label: null, varies: order_only}
+      - {id: row.methods,     lines: 2, max_chars: 195, label: null, varies: true}
+      - {id: row.tools,       lines: 2, max_chars: 195, label: null, varies: true}
+      - {id: row.spoken,      lines: 1, max_chars: 105, label: null, varies: false}
+
+  - id: experience
+    fixed: true
+    line_budget: 17
+    entries:
+      # One line per job in experience.yaml, in order, with its bullet count.
+      - {id: northwind,  bullets: 3}
+      - {id: brightpath, bullets: 3}
+      - {id: unilab,     bullets: 1}
+
+  - id: projects
+    fixed: false
+    count: 3
+    bullets_per_project: 2
+    line_budget: 11
+    # cost of one project = 1 title line + lines(b1) + lines(b2).
+    # Two <=95-char bullets per project means every project costs exactly 3 lines.
+    target_cost_per_project: 3
+
+  - id: education
+    fixed: true
+    line_budget: 14
+

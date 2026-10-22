@@ -1,0 +1,61 @@
+# ─── Core ─────────────────────────────────────────────────────────────
+streamlit>=1.62,<2  # verified: top navigation + a .streamlit/config.toml beside each app
+pandas>=2.2
+pydantic>=2.9
+# 2.7.0 is the first release that ships `NoDecode`, which src/pitwall/config.py
+# imports at line 24. Verified against the wheels on PyPI, not from memory:
+# 2.6.1 has no NoDecode, 2.7.0 does. Below this floor `import pitwall` fails
+# with a bare ImportError that names the symbol and not the cause — which is
+# exactly what the system Anaconda interpreter on this machine does.
+pydantic-settings>=2.7
+python-dotenv>=1.0
+
+# ─── Search ───────────────────────────────────────────────────────────
+ddgs>=9.10           # DuckDuckGo / metasearch, keyless
+httpx>=0.27          # Serper + SearXNG + any HTTP provider
+tenacity>=9.0        # retries with exponential backoff
+
+# ─── LLM ──────────────────────────────────────────────────────────────
+openai>=1.50         # used ONLY as an OpenAI-compatible client for Z.ai/DeepSeek/Ollama
+
+# ─── Contact enrichment (v3) ──────────────────────────────────────────
+# The MX lookup of §3.2. DNS runs on port 53 and is never blocked, which is
+# exactly why it is the verification that works everywhere and SMTP probing is
+# not built at all (§3.1). Optional at runtime: without it the MX check reports
+# "unknown" and the rest of the free engine is unaffected.
+dnspython>=2.7
+
+# ─── Text handling ────────────────────────────────────────────────────
+rapidfuzz>=3.10      # fuzzy name/company matching for dedup
+python-slugify>=8.0
+PyYAML>=6.0
+Jinja2>=3.1          # renders scoring/prompts/user_v1.j2 (arrives transitively with altair; pinned so it is explicit)
+
+# ─── CLI ──────────────────────────────────────────────────────────────
+typer>=0.12
+rich>=13.9
+
+# ─── Charts (dashboard) ───────────────────────────────────────────────
+altair>=5.4          # ships with Streamlit anyway
+
+# ─── Export ───────────────────────────────────────────────────────────
+openpyxl>=3.1        # pandas .to_excel() engine for the XLSX export in §8/export.py
+
+# ─── Dev ──────────────────────────────────────────────────────────────
+pytest>=8.3
+pytest-cov>=5.0
+ruff>=0.7
+mypy>=1.13
+
+# ── tailored CV + cover letter ──
+# Pure-Python wheels only. reportlab renders the frozen frame and, via
+# pdfmetrics.stringWidth, measures line costs instead of estimating them.
+reportlab>=4.2
+python-docx>=1.1
+pypdf>=5.0
+# Only scripts/fetch_fonts.py needs this — static instances from variable fonts.
+fonttools>=4.50
+# Renders the generated CV to an image for the Applications Studio preview.
+# `st.pdf` would be the obvious choice but its component does not work on
+# Streamlit 1.62; the page degrades to a download button without this.
+pypdfium2>=4.30

@@ -1,0 +1,38 @@
+# personal.yaml — contact details printed at the top of the CV, plus a few facts
+# the cover-letter writer is allowed to use.
+#
+# EXAMPLE DATA. "Alex Morgan" is a made-up person. Replace every value with your own.
+
+name: Alex Morgan
+title: Data Scientist            # the fixed title line on the CV, right of the name
+email: alex.morgan@example.com
+phone: ""                        # leave empty to keep it off the CV
+location: Manchester, United Kingdom
+
+linkedin: https://www.linkedin.com/in/your-handle/
+github: https://github.com/your-handle
+portfolio: ""
+
+willing_to_relocate: true
+relocation_targets: [United Kingdom, Netherlands, remote-EU]
+
+notice_period: "available immediately, full-time"
+
+# One or two sentences on what you are looking for. Used by the job search's AI fit
+# score (via `make profile-sync`), never printed on the CV.
+target_role: >
+  Graduate or junior data scientist and machine-learning engineer roles, ideally
+  forecasting, experimentation or applied ML. Not senior, lead or management level.
+
+# Work authorisation. Two choices:
+#   * fill `work_authorization` with a sentence you are happy for a letter to use, or
+#   * leave it empty and set `work_authorization_policy: never_mention`, and the
+#     letter writer will never raise the subject (add the topic to
+#     forbidden.yaml `never_mention` too, as this example does).
+work_authorization: ""
+work_authorization_policy: never_mention
+
+languages:
+  - {name: English, level: native}
+  - {name: Spanish, level: B2}
+  - {name: German,  level: A2}

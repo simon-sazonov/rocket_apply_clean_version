@@ -1,0 +1,22 @@
+# summaries.yaml — NOT printed on the CV (the layout has no summary block).
+# Raw material for a cover letter's opening, one per role family.
+#
+# EXAMPLE DATA for a made-up person. Replace with your own.
+
+- id: sum.data_science
+  for: [data_science, analytics]
+  text: >
+    MSc Data Science student with an internship in retail forecasting and a part-time
+    analyst role, used to taking a vague question to a measurable answer.
+
+- id: sum.machine_learning
+  for: [machine_learning, research]
+  text: >
+    MSc Data Science student who builds and evaluates models end to end - gradient
+    boosting, fine-tuned transformers, small RL agents - and reports what did not work.
+
+- id: sum.data_engineering
+  for: [data_engineering, software]
+  text: >
+    MSc Data Science student with hands-on PySpark, PostgreSQL and Docker experience:
+    a partitioned ETL with quarantine checks, a star-schema warehouse and a tested model API.

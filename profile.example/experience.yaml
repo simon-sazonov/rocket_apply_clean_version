@@ -1,0 +1,125 @@
+# experience.yaml — the FIXED experience block. Every entry and every bullet prints
+# on every CV, in this order. Tailoring happens only through `variants`: pre-approved
+# rewordings the selector may swap in for a given role family. It never writes new text.
+#
+# EXAMPLE DATA for a made-up person. Replace with your own.
+#
+# Rules (checked by `make validate-profile`):
+#   * Bullet text is a plain double-quoted single-line string. What is between the
+#     quotes is exactly what prints.
+#   * `rendered_lines` is how many lines the bullet takes on the CV. The validator
+#     tells you the right number if you get it wrong.
+#   * A variant must take the SAME number of lines as its bullet (line-neutral),
+#     or the one-page CV would overflow.
+#   * Every bullet needs at least 3 tags from taxonomy.yaml.
+#   * The number of entries and bullets per entry is declared in layout.yaml
+#     (sections -> experience -> entries). Keep the two in step.
+
+- id: northwind
+  type: experience
+  org: Northwind Analytics
+  role: Data Science Intern
+  employment_type: Internship
+  location: Manchester, United Kingdom
+  start: 2026-06
+  end: 2026-09
+  context: >
+    Summer internship in a six-person analytics team at a retail-analytics
+    consultancy. Worked on demand forecasting features and on the model-monitoring
+    report the team sent to clients every month.
+  bullets:
+    - id: northwind.b1
+      text: "Built a gradient-boosted demand model on two years of store-level sales, adding holiday and promotion features that cut weekly forecast error 18% against the existing baseline"
+      rendered_lines: 2
+      tags: [python, machine_learning, gradient_boosting, feature_engineering, time_series, model_evaluation]
+      metrics: [m.northwind.error]
+      strength: strong
+      use_for: [data_science, machine_learning, analytics]
+      never_use_for: []
+      variants:
+        - id: northwind.b1.v2
+          use_for: [machine_learning]
+          text: "Trained a gradient-boosted demand model on two years of store-level sales, engineering holiday and promotion features that cut weekly forecast error 18% against baseline"
+
+    - id: northwind.b2
+      text: "Automated the monthly model-monitoring report in Python, replacing a manual spreadsheet"
+      rendered_lines: 1
+      tags: [python, monitoring, data_pipelines, pandas]
+      metrics: []
+      strength: medium
+      use_for: [data_engineering, data_science, analytics]
+      never_use_for: []
+      variants: []
+
+    - id: northwind.b3
+      text: "Presented findings to client analysts and wrote the handover notes for the next intern"
+      rendered_lines: 1
+      tags: [communication, stakeholder_management, documentation]
+      metrics: []
+      strength: supporting
+      use_for: [analytics, data_science]
+      never_use_for: []
+      variants: []
+
+- id: brightpath
+  type: experience
+  org: BrightPath Tutoring
+  role: Data Analyst (part-time)
+  employment_type: Part-time
+  location: Remote
+  start: 2025-01
+  end: 2026-05
+  context: >
+    Part-time analyst role during the BSc at a small online tutoring company.
+    Owned the booking data and the weekly dashboard the founders used.
+  bullets:
+    - id: brightpath.b1
+      text: "Modelled the booking and payments data in PostgreSQL and wrote the SQL behind a weekly dashboard used by both founders to track retention and tutor utilisation"
+      rendered_lines: 2
+      tags: [sql, postgresql, data_modelling, analytics, business_intelligence]
+      metrics: []
+      strength: medium
+      use_for: [analytics, data_engineering, data_science]
+      never_use_for: []
+      variants: []
+
+    - id: brightpath.b2
+      text: "Built a churn model on 4,000 student accounts that flagged at-risk students two weeks earlier than the manual review, reaching 0.81 ROC-AUC on a held-out quarter"
+      rendered_lines: 2
+      tags: [machine_learning, churn_prediction, classification, model_evaluation, python]
+      metrics: [m.brightpath.churn]
+      strength: strong
+      use_for: [data_science, machine_learning, analytics]
+      never_use_for: []
+      variants: []
+
+    - id: brightpath.b3
+      text: "Ran two pricing experiments with the founders, from hypothesis to write-up"
+      rendered_lines: 1
+      tags: [experimental_design, hypothesis_testing, communication]
+      metrics: []
+      strength: supporting
+      use_for: [analytics, data_science, research]
+      never_use_for: []
+      variants: []
+
+- id: unilab
+  type: experience
+  org: Northbridge Robotics Society
+  role: Software Lead (student society)
+  employment_type: Volunteer
+  location: Manchester, United Kingdom
+  start: 2024-10
+  end: 2025-06
+  context: >
+    Student society that builds a small autonomous rover each year.
+  bullets:
+    - id: unilab.b1
+      text: "Wrote the rover's Python telemetry pipeline and a Streamlit dashboard that the team used during every test run to spot sensor faults before they ended the run"
+      rendered_lines: 2
+      tags: [python, streamlit, data_pipelines, monitoring, software]
+      metrics: []
+      strength: supporting
+      use_for: [software, data_engineering]
+      never_use_for: []
+      variants: []
